@@ -11,8 +11,8 @@ test('initWallet:setup', async t => {
 })
 
 test('initWallet:test', async t => {
-  t.plan(1)
   try {
+    t.plan(1)
     grpc = new LndGrpc(grpcOptions)
     await grpc.connect()
     await grpc.services.WalletUnlocker.initWallet({
@@ -24,15 +24,14 @@ test('initWallet:test', async t => {
       t.equal(grpc.state, 'active', 'should emit "active" event and be in active state')
     })
   } catch (e) {
-    console.error(e)
+    await grpc.disconnect()
+    await killLnd(lndProcess, { cleanLndDir: true })
     t.fail(e)
   }
 })
 
 test('initWallet:teardown', async t => {
-  if (grpc.can('disconnect')) {
-    await grpc.disconnect()
-  }
+  await grpc.disconnect()
   await killLnd(lndProcess, { cleanLndDir: true })
   t.end()
 })

@@ -81,12 +81,16 @@ export default function tor({ cwd } = {}) {
   const stop = async () => {
     if (isStarted()) {
       debug('Stopping tor with pid: %o', proc.pid)
-      proc.kill()
-      return new Promise((resolve, reject) => {
-        proc.on('close', () => {
+
+      const waitForExit = new Promise((resolve, reject) => {
+        proc.on('exit', () => {
           resolve()
+          delete process.env.http_proxy
         })
       })
+
+      proc.kill('SIGKILL')
+      return waitForExit
     }
   }
 

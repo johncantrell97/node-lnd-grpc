@@ -3,7 +3,7 @@ import test from 'tape-promise/tape'
 import sinon from 'sinon'
 import { join } from 'path'
 import LndGrpc from '../src'
-import { onion } from '../src/utils'
+import { onion, delay } from '../src/utils'
 import { remoteHost } from './helpers/grpc'
 
 const { host, cert, macaroon, lndconenctString } = remoteHost
@@ -117,27 +117,45 @@ test('locked -> disconnect', async t => {
 test('active -> disconnect', async t => {
   sinon.restore()
   t.plan(1)
-  const grpc = new LndGrpc(grpcOptions)
-  sinon.stub(grpc, 'determineWalletState').resolves('WALLET_STATE_ACTIVE')
-  await grpc.connect()
-  await grpc.disconnect()
-  t.equal(grpc.state, 'ready', 'should switch to ready state')
+  let grpc
+  try {
+    grpc = new LndGrpc(grpcOptions)
+    sinon.stub(grpc, 'determineWalletState').resolves('WALLET_STATE_ACTIVE')
+    await grpc.connect()
+    await grpc.disconnect()
+    t.equal(grpc.state, 'ready', 'should switch to ready state')
+  } catch (e) {
+    await grpc.disconnect()
+    t.fail(e)
+  }
 })
 
 test('connect (paths)', async t => {
   sinon.restore()
-  t.plan(1)
-  const grpc = new LndGrpc(grpcOptions)
-  await grpc.connect()
-  t.equal(grpc.state, 'active', 'should connect')
-  await grpc.disconnect()
+  let grpc
+  try {
+    grpc = new LndGrpc(grpcOptions)
+    await grpc.connect()
+    t.equal(grpc.state, 'active', 'should connect')
+    await grpc.disconnect()
+    t.end()
+  } catch (e) {
+    await grpc.disconnect()
+    t.fail(e)
+  }
 })
 
 test('connect (lndconnect)', async t => {
   sinon.restore()
-  t.plan(1)
-  const grpc = new LndGrpc({ lndconnectUri: lndconenctString })
-  await grpc.connect()
-  t.equal(grpc.state, 'active', 'should connect')
-  await grpc.disconnect()
+  let grpc
+  try {
+    grpc = new LndGrpc({ lndconnectUri: lndconenctString })
+    await grpc.connect()
+    t.equal(grpc.state, 'active', 'should connect')
+    await grpc.disconnect()
+    t.end()
+  } catch (e) {
+    await grpc.disconnect()
+    t.fail(e)
+  }
 })
