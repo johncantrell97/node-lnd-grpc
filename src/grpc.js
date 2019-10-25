@@ -64,7 +64,7 @@ class LndGrpc extends EventEmitter {
     // Define services.
     this.supportedServices = [WalletUnlocker, Lightning, Autopilot, ChainNotifier, Invoices, Router, Signer, WalletKit]
     this.services = {}
-    this.tor = null
+    this.tor = tor()
 
     // Instantiate services.
     this.supportedServices.forEach(Service => {
@@ -99,8 +99,7 @@ class LndGrpc extends EventEmitter {
 
     // Start tor service if needed.
     const [lndHost] = host.split(':')
-    if (lndHost.endsWith('.onion')) {
-      this.tor = tor()
+    if (lndHost.endsWith('.onion') && !this.tor.isStarted()) {
       await this.tor.start()
     }
 
@@ -139,7 +138,7 @@ class LndGrpc extends EventEmitter {
       await this.fsm.disconnect(...args)
       this.emit('disconnected')
     }
-    this.tor && (await this.tor.stop())
+    await this.tor.stop()
   }
 
   // ------------------------------------

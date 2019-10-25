@@ -3,7 +3,7 @@ export const WALLET_STATE_LOCKED = 'WALLET_STATE_LOCKED'
 export const WALLET_STATE_ACTIVE = 'WALLET_STATE_ACTIVE'
 
 // Time (in seconds) to wait for interface probe calls to complete.
-export const PROBE_TIMEOUT = 5
+export const PROBE_TIMEOUT = 10
 
 // Time (in ms) to wait before retrying a connection attempt.
 export const PROBE_RETRY_INTERVAL = 250
@@ -18,3 +18,6 @@ export const FILE_WAIT_TIMEOUT = 10 * 1000
 // in a short space of time. We increase this to prevent `NGHTTP2_ENHANCE_YOUR_CALM` errors from http2 streams.
 // See https://nodejs.org/api/http2.html#http2_http2_connect_authority_options_listener.
 export const MAX_SESSION_MEMORY = 50
+
+// Time (in ms) to wait for Tor to become ready after starting.
+export const TOR_WAIT_TIMEOUT = 1000

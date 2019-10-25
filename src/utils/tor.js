@@ -2,15 +2,18 @@ import child from 'child_process'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import grpc from 'grpc'
 import createDebug from 'debug'
 import getPort from 'get-port'
+import delay from './delay'
+import { TOR_WAIT_TIMEOUT } from './constants'
 
 const debug = createDebug('lnrpc:tor')
 const debugTor = createDebug('lnrpc:torproc')
 
 export default function tor({ cwd } = {}) {
   let proc = null
+
+  const isStarted = () => Boolean(proc && proc.pid)
 
   /**
    * start - Start Tor tunnel service.
@@ -20,7 +23,7 @@ export default function tor({ cwd } = {}) {
    * @return {Promise} Promise that resolves once the service is ready to use
    */
   const start = async () => {
-    if (proc) {
+    if (isStarted()) {
       throw new Error('Tor is already already running')
     }
 
@@ -35,8 +38,6 @@ export default function tor({ cwd } = {}) {
       DataDirectory: datapath,
       HTTPTunnelPort: httpTunnelPort,
       SocksPort: 0,
-      HeartbeatPeriod: '30 minutes',
-      NumEntryGuards: 10,
     }
 
     debug('Starting tor with settings: %o', settings)
@@ -61,9 +62,10 @@ export default function tor({ cwd } = {}) {
     })
 
     return new Promise((resolve, reject) => {
-      proc.stdout.on('data', data => {
+      proc.stdout.on('data', async data => {
         debugTor(data.toString().trim())
         if (data.toString().indexOf('Bootstrapped 100%') !== -1) {
+          await delay(TOR_WAIT_TIMEOUT)
           resolve(true)
         }
         if (data.toString().indexOf('[error]') !== -1) {
@@ -77,7 +79,7 @@ export default function tor({ cwd } = {}) {
    * Stop Tor service.
    */
   const stop = async () => {
-    if (proc) {
+    if (isStarted()) {
       debug('Stopping tor with pid: %o', proc.pid)
       proc.kill()
       return new Promise((resolve, reject) => {
@@ -91,5 +93,6 @@ export default function tor({ cwd } = {}) {
   return {
     start,
     stop,
+    isStarted,
   }
 }
