@@ -10,6 +10,7 @@ const { host, cert, macaroon, lndconenctString } = remoteHost
 const grpcOptions = { host, cert, macaroon }
 
 test('initialize', t => {
+  sinon.restore()
   t.plan(14)
   const grpc = new LndGrpc(grpcOptions)
   t.equal(grpc.state, 'ready', 'should start in the ready state')
@@ -29,6 +30,7 @@ test('initialize', t => {
 })
 
 test('constructor (paths)', t => {
+  sinon.restore()
   t.plan(3)
   const grpc = new LndGrpc(grpcOptions)
   t.equal(grpc.options.host, host, 'should extract the host')
@@ -37,6 +39,7 @@ test('constructor (paths)', t => {
 })
 
 test('constructor (lndconnect)', t => {
+  sinon.restore()
   t.plan(3)
   const lndconnectUri = `lndconnect://${host}?cert=${cert}&macaroon=${macaroon}`
   const grpc = new LndGrpc({ lndconnectUri })
@@ -45,26 +48,12 @@ test('constructor (lndconnect)', t => {
   t.equal(grpc.options.macaroon, macaroon, 'should extract the macaroon')
 })
 
-test('connect (paths)', async t => {
-  t.plan(1)
-  const grpc = new LndGrpc(grpcOptions)
-  await grpc.connect()
-  t.equal(grpc.state, 'active', 'should connect')
-  await grpc.disconnect()
-})
-
-test('connect (lndconnect)', async t => {
-  t.plan(1)
-  const grpc = new LndGrpc({ lndconnectUri: lndconenctString })
-  await grpc.connect()
-  t.equal(grpc.state, 'active', 'should connect')
-  await grpc.disconnect()
-})
-
 test('ready -> connect (locked)', async t => {
+  sinon.restore()
   t.plan(1)
   const grpc = new LndGrpc(grpcOptions)
   sinon.stub(grpc, 'determineWalletState').resolves('WALLET_STATE_LOCKED')
+  sinon.stub(grpc.tor, 'start').resolves()
   const stub = sinon.stub(grpc.fsm, 'activateWalletUnlocker')
   await grpc.connect()
   t.true(stub.called, 'should activate wallet unlocker')
@@ -72,9 +61,11 @@ test('ready -> connect (locked)', async t => {
 })
 
 test('ready -> connect (active)', async t => {
+  sinon.restore()
   t.plan(1)
   const grpc = new LndGrpc(grpcOptions)
   sinon.stub(grpc, 'determineWalletState').resolves('WALLET_STATE_ACTIVE')
+  sinon.stub(grpc.tor, 'start').resolves()
   const stub = sinon.stub(grpc.fsm, 'activateLightning')
   await grpc.connect()
   t.true(stub.called, 'should activate lightning')
@@ -82,9 +73,11 @@ test('ready -> connect (active)', async t => {
 })
 
 test('locked -> connect', async t => {
+  sinon.restore()
   t.plan(2)
   const grpc = new LndGrpc(grpcOptions)
   sinon.stub(grpc, 'determineWalletState').resolves('WALLET_STATE_LOCKED')
+  sinon.stub(grpc.tor, 'start').resolves()
   await grpc.connect()
   try {
     await grpc.connect()
@@ -96,6 +89,7 @@ test('locked -> connect', async t => {
 })
 
 test('active -> connect', async t => {
+  sinon.restore()
   t.plan(2)
   const grpc = new LndGrpc(grpcOptions)
   sinon.stub(grpc, 'determineWalletState').resolves('WALLET_STATE_ACTIVE')
@@ -110,19 +104,40 @@ test('active -> connect', async t => {
 })
 
 test('locked -> disconnect', async t => {
+  sinon.restore()
   t.plan(1)
   const grpc = new LndGrpc(grpcOptions)
   sinon.stub(grpc, 'determineWalletState').resolves('WALLET_STATE_LOCKED')
+  sinon.stub(grpc.tor, 'start').resolves()
   await grpc.connect()
   await grpc.disconnect()
   t.equal(grpc.state, 'ready', 'should switch to ready state')
 })
 
 test('active -> disconnect', async t => {
+  sinon.restore()
   t.plan(1)
   const grpc = new LndGrpc(grpcOptions)
   sinon.stub(grpc, 'determineWalletState').resolves('WALLET_STATE_ACTIVE')
   await grpc.connect()
   await grpc.disconnect()
   t.equal(grpc.state, 'ready', 'should switch to ready state')
+})
+
+test('connect (paths)', async t => {
+  sinon.restore()
+  t.plan(1)
+  const grpc = new LndGrpc(grpcOptions)
+  await grpc.connect()
+  t.equal(grpc.state, 'active', 'should connect')
+  await grpc.disconnect()
+})
+
+test('connect (lndconnect)', async t => {
+  sinon.restore()
+  t.plan(1)
+  const grpc = new LndGrpc({ lndconnectUri: lndconenctString })
+  await grpc.connect()
+  t.equal(grpc.state, 'active', 'should connect')
+  await grpc.disconnect()
 })
